@@ -1,22 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:todo_app/home.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'task.dart';
+import 'home.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: Home(),
-    );
-  }
+  await Hive.initFlutter();
+  
+  Hive.registerAdapter(TaskAdapter());
+  
+  runApp(MaterialApp(debugShowCheckedModeBanner:false, home: Home()));
 }

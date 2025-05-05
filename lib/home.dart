@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'task.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -10,10 +12,44 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   final task = TextEditingController();
   final edit = TextEditingController();
-  final List<String> _tasks = [];
+  Box<Task>? taskBox;
+
+  @override
+  void initState() {
+    super.initState();
+    Hive.openBox<Task>('tasks').then((box) {
+      setState(() {
+        taskBox = box;
+      });
+    });
+  }
+
+  void addTask(String title) {
+    final newTask = Task(title: title);
+    taskBox?.add(newTask);
+    setState(() {});
+  }
+
+  void deleteTask(int index) {
+    taskBox?.deleteAt(index);
+    setState(() {});
+  }
+
+  void editTask(int index, String newTitle) {
+    final task = taskBox?.getAt(index);
+    if (task != null) {
+      task.title = newTitle;
+      task.save();
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (!Hive.isBoxOpen('tasks') || taskBox == null) {
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -23,7 +59,6 @@ class _HomeState extends State<Home> {
       body: Column(
         children: [
           Container(
-            decoration: BoxDecoration(color: Colors.black),
             padding: EdgeInsets.all(20),
             child: TextField(
               controller: task,
@@ -37,18 +72,15 @@ class _HomeState extends State<Home> {
               style: TextStyle(color: Colors.white),
             ),
           ),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               FloatingActionButton.extended(
                 onPressed: () {
-                  String task_str = task.text.trim();
-                  if (task_str.isNotEmpty) {
-                    setState(() {
-                      _tasks.add(task_str);
-                      task.clear();
-                    });
+                  String taskStr = task.text.trim();
+                  if (taskStr.isNotEmpty) {
+                    addTask(taskStr);
+                    task.clear();
                   }
                 },
                 label: Text("Add Task"),
@@ -56,95 +88,93 @@ class _HomeState extends State<Home> {
               ),
               FloatingActionButton.extended(
                 onPressed: () {
-                  setState(() {
-                    _tasks.clear();
-                  });
+                  taskBox?.clear();
+                  setState(() {});
                 },
-                label: Text("Clear All Tasks"),
+                label: Text("Clear All"),
                 icon: Icon(Icons.remove),
               ),
             ],
           ),
           Padding(padding: EdgeInsets.all(20)),
           Expanded(
-            child: ListView.builder(
-              itemCount: _tasks.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(
-                    _tasks[index],
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  trailing: SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.25,
-                    child: Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.delete, color: Colors.white),
-                          onPressed: () {
-                            setState(() {
-                              _tasks.removeAt(index);
-                            });
-                          },
+            child: ValueListenableBuilder(
+              valueListenable: taskBox!.listenable(),
+              builder: (context, Box<Task> box, _) {
+                if (box.isEmpty) {
+                  return Center(child: Text("No tasks yet.", style: TextStyle(color: Colors.white)));
+                }
+
+                return ListView.builder(
+                  itemCount: box.length,
+                  itemBuilder: (context, index) {
+                    final task = box.getAt(index);
+
+                    return CheckboxListTile(
+                      title: Text(
+                        task!.title,
+                        style: TextStyle(
+                          color: Colors.white,
+                          decoration: task.isDone ? TextDecoration.lineThrough : null,
                         ),
-                        IconButton(
-                          icon: Icon(Icons.edit, color: Colors.white),
-                          onPressed: () {
-                            edit.text = _tasks[index];
-                            showDialog(
-                              context: context,
-                              builder: (context) {
-                                return AlertDialog(
-                                  backgroundColor: const Color.fromARGB(
-                                    255,
-                                    42,
-                                    42,
-                                    42,
+                      ),
+                      value: task.isDone,
+                      onChanged: (checked) {
+                        if (checked == true) {
+                          deleteTask(index);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Task completed!')),
+                          );
+                        }
+                      },
+                      controlAffinity: ListTileControlAffinity.leading,
+                      secondary: IconButton(
+                        icon: Icon(Icons.edit, color: Colors.white),
+                        onPressed: () {
+                          edit.text = task.title;
+                          showDialog(
+                            context: context,
+                            builder: (context) {
+                              return AlertDialog(
+                                backgroundColor: Color.fromARGB(255, 42, 42, 42),
+                                title: Text("Edit Task", style: TextStyle(color: Colors.white)),
+                                content: TextField(
+                                  controller: edit,
+                                  maxLines: 1,
+                                  decoration: InputDecoration(
+                                    hintText: "Edit Task",
+                                    icon: Icon(Icons.add_task_outlined),
+                                    iconColor: Colors.white,
+                                    hintStyle: TextStyle(color: Colors.white),
                                   ),
-                                  title: Text(
-                                    "Edit Task",
-                                    style: TextStyle(color: Colors.white),
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                actions: [
+                                  FloatingActionButton.extended(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                    label: Text("Cancel"),
+                                    icon: Icon(Icons.cancel),
                                   ),
-                                  content: TextField(
-                                    controller: edit,
-                                    maxLines: 1,
-                                    decoration: InputDecoration(
-                                      hintText: "Add Task",
-                                      icon: Icon(Icons.add_task_outlined),
-                                      iconColor: Colors.white,
-                                      hintStyle: TextStyle(color: Colors.white),
-                                    ),
-                                    style: TextStyle(color: Colors.white),
+                                  FloatingActionButton.extended(
+                                    onPressed: () {
+                                      if (edit.text.trim().isNotEmpty) {
+                                        editTask(index, edit.text.trim());
+                                      }
+                                      Navigator.of(context).pop();
+                                    },
+                                    label: Text("Edit"),
+                                    icon: Icon(Icons.edit),
                                   ),
-                                  actions: [
-                                    FloatingActionButton.extended(
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                      },
-                                      label: Text("Cancel"),
-                                      icon: Icon(Icons.cancel),
-                                    ),
-                                    FloatingActionButton.extended(
-                                      onPressed: () {
-                                        if (edit.text.trim().isNotEmpty) {
-                                          setState(() {
-                                            _tasks[index] = edit.text.trim();
-                                          });
-                                        }
-                                        Navigator.of(context).pop();
-                                      },
-                                      label: Text("Edit"),
-                                      icon: Icon(Icons.edit),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    );
+                  },
                 );
               },
             ),
