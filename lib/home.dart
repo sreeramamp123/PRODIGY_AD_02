@@ -15,9 +15,29 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: Text("To-Do List", style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.black,
+      ),
       body: Column(
         children: [
-          TextField(controller: task),
+          Container(
+            decoration: BoxDecoration(color: Colors.black),
+            padding: EdgeInsets.all(20),
+            child: TextField(
+              controller: task,
+              maxLines: 1,
+              decoration: InputDecoration(
+                hintText: "Add Task",
+                icon: Icon(Icons.add_task_outlined),
+                iconColor: Colors.white,
+                hintStyle: TextStyle(color: Colors.white),
+              ),
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -45,18 +65,22 @@ class _HomeState extends State<Home> {
               ),
             ],
           ),
+          Padding(padding: EdgeInsets.all(20)),
           Expanded(
             child: ListView.builder(
               itemCount: _tasks.length,
               itemBuilder: (context, index) {
                 return ListTile(
-                  title: Text(_tasks[index]),
+                  title: Text(
+                    _tasks[index],
+                    style: TextStyle(color: Colors.white),
+                  ),
                   trailing: SizedBox(
-                    width: 90,
+                    width: MediaQuery.of(context).size.width * 0.25,
                     child: Row(
                       children: [
                         IconButton(
-                          icon: Icon(Icons.delete),
+                          icon: Icon(Icons.delete, color: Colors.white),
                           onPressed: () {
                             setState(() {
                               _tasks.removeAt(index);
@@ -64,15 +88,34 @@ class _HomeState extends State<Home> {
                           },
                         ),
                         IconButton(
-                          icon: Icon(Icons.edit),
+                          icon: Icon(Icons.edit, color: Colors.white),
                           onPressed: () {
                             edit.text = _tasks[index];
                             showDialog(
                               context: context,
                               builder: (context) {
                                 return AlertDialog(
-                                  title: Text("Edit Task"),
-                                  content: TextField(controller: edit),
+                                  backgroundColor: const Color.fromARGB(
+                                    255,
+                                    42,
+                                    42,
+                                    42,
+                                  ),
+                                  title: Text(
+                                    "Edit Task",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  content: TextField(
+                                    controller: edit,
+                                    maxLines: 1,
+                                    decoration: InputDecoration(
+                                      hintText: "Add Task",
+                                      icon: Icon(Icons.add_task_outlined),
+                                      iconColor: Colors.white,
+                                      hintStyle: TextStyle(color: Colors.white),
+                                    ),
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                                   actions: [
                                     FloatingActionButton.extended(
                                       onPressed: () {
