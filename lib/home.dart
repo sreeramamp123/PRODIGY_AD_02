@@ -9,7 +9,8 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   final task = TextEditingController();
-  List<String> _tasks = [];
+  final edit = TextEditingController();
+  final List<String> _tasks = [];
 
   @override
   Widget build(BuildContext context) {
@@ -34,14 +35,13 @@ class _HomeState extends State<Home> {
                 icon: Icon(Icons.add_task),
               ),
               FloatingActionButton.extended(
-                onPressed: () {},
-                label: Text("Delete Task"),
-                icon: Icon(Icons.remove),
-              ),
-              FloatingActionButton.extended(
-                onPressed: () {},
+                onPressed: () {
+                  setState(() {
+                    _tasks.clear();
+                  });
+                },
                 label: Text("Clear All Tasks"),
-                icon: Icon(Icons.delete_forever_sharp),
+                icon: Icon(Icons.remove),
               ),
             ],
           ),
@@ -49,7 +49,60 @@ class _HomeState extends State<Home> {
             child: ListView.builder(
               itemCount: _tasks.length,
               itemBuilder: (context, index) {
-                return ListTile(title: Text(_tasks[index]));
+                return ListTile(
+                  title: Text(_tasks[index]),
+                  trailing: SizedBox(
+                    width: 90,
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: () {
+                            setState(() {
+                              _tasks.removeAt(index);
+                            });
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.edit),
+                          onPressed: () {
+                            edit.text = _tasks[index];
+                            showDialog(
+                              context: context,
+                              builder: (context) {
+                                return AlertDialog(
+                                  title: Text("Edit Task"),
+                                  content: TextField(controller: edit),
+                                  actions: [
+                                    FloatingActionButton.extended(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                      label: Text("Cancel"),
+                                      icon: Icon(Icons.cancel),
+                                    ),
+                                    FloatingActionButton.extended(
+                                      onPressed: () {
+                                        if (edit.text.trim().isNotEmpty) {
+                                          setState(() {
+                                            _tasks[index] = edit.text.trim();
+                                          });
+                                        }
+                                        Navigator.of(context).pop();
+                                      },
+                                      label: Text("Edit"),
+                                      icon: Icon(Icons.edit),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                );
               },
             ),
           ),
